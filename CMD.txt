@@ -1,0 +1,1 @@
+vs.exe --layout c:\vslayout --add Microsoft.VisualStudio.Workload.ManagedDesktop --lang en-US2

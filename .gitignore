@@ -15,6 +15,10 @@
 
 # Mono auto generated files
 mono_crash.*
+ZIP/
+OUT/
+Out/
+Layout/
 
 # Build results
 [Dd]ebug/
