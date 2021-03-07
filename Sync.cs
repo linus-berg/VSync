@@ -1,10 +1,8 @@
 using System.IO;
 using System;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Diagnostics;
 using System.IO.Compression;
+
 namespace Sync {
   public class Syncer {
     private DateTime last_sync_;
@@ -35,6 +33,7 @@ namespace Sync {
       }
     }
     private void Zip() {
+      Console.WriteLine("Zipping Delta Files.");
       if (!Directory.Exists(ZIP_DIR)) {
         Directory.CreateDirectory(ZIP_DIR);
       }
@@ -53,6 +52,7 @@ namespace Sync {
     }
 
     private void RunVSDownload() {
+      Console.WriteLine("Starting Visual Studio Download / Syncing");
       var p = Process.Start("./vs.exe", args_);
       p.WaitForExit(); 
     }
@@ -60,6 +60,7 @@ namespace Sync {
     private void SetLastSyncTime() {
       last_sync_ = DateTime.UtcNow;
       File.WriteAllText(SYNC_FILE, last_sync_.ToString());
+      Console.WriteLine($"Setting last sync time: {last_sync_}.");
     }
 
     private void GetLastSyncTime() {
@@ -70,11 +71,13 @@ namespace Sync {
         string date_str = File.ReadAllText(SYNC_FILE);
         last_sync_ = DateTime.Parse(date_str);
       }
+      Console.WriteLine($"Got last sync time: {last_sync_}.");
     }
 
     private void WalkVS(string root_dir) {
       DirectoryInfo root = new DirectoryInfo(root_dir);
       FileInfo[] files = root.GetFiles("*.*", SearchOption.AllDirectories);
+      Console.WriteLine("Checking Visual Studio directory for file changes.");
       foreach(var file in files) {
         string p = Path.GetRelativePath(layout_dir_, file.Directory.FullName);
         string o = OUT_DIR + p + "/";
