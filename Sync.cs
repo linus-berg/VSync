@@ -1,7 +1,7 @@
-using System.IO;
 using System;
-using System.Diagnostics;
+using System.IO;
 using System.IO.Compression;
+using System.Diagnostics;
 
 namespace Sync {
   public class Syncer {
