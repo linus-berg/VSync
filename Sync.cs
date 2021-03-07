@@ -18,7 +18,7 @@ namespace Sync {
     public Syncer() {
       GetSyncTime();
       GetLayoutdir();
-      //RunVSDownload();
+      RunVSDownload();
       if (!basing_) {
         MkDeltaDir();
         WalkVSTree();
