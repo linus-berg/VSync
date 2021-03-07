@@ -15,9 +15,9 @@
 sync_time
 # Mono auto generated files
 mono_crash.*
-ZIP/
-OUT/
-Out/
+ARCHIVE/
+DELTA/
+Build/
 Layout/
 
 # Build results

@@ -6,24 +6,29 @@ using System.Diagnostics;
 namespace Sync {
   public class Syncer {
     private DateTime last_sync_;
+    /* If this is a first run (creating a base) */
     private bool basing_ = false;
+    
     private readonly string SYNC_FILE = "./sync_time";
-    private readonly string OUT_DIR = "./OUT/";
-    private readonly string ZIP_DIR = "./ZIP/";
+    private readonly string DELTA_DIR = "./DELTA/";
+    private readonly string ARCHIVE_DIR = "./ARCHIVE/";
     private string args_ = File.ReadAllText("ARGS.txt");
     private string layout_dir_ = null;
+
     public Syncer() {
-      GetLastSyncTime();
+      GetSyncTime();
       GetLayoutdir();
-      ClearOut();
-      RunVSDownload();
+      //RunVSDownload();
       if (!basing_) {
-        WalkVS("./Layout");
+        MkDeltaDir();
+        WalkVSTree();
       }
-      SetLastSyncTime();
-      Zip();
+      SetSyncTime();
+      ZipDelta();
     } 
+
     private void GetLayoutdir() {
+      /* TODO: If layout path contains spaces, we are fucked, should fix. */
       string[] a = args_.Split(" ");
       for(int i = 0; i < a.Length; i++) {
         if (a[i] == "--layout") {
@@ -31,24 +36,34 @@ namespace Sync {
           break;
         }
       }
-    }
-    private void Zip() {
-      Console.WriteLine("Zipping Delta Files.");
-      if (!Directory.Exists(ZIP_DIR)) {
-        Directory.CreateDirectory(ZIP_DIR);
+
+      if (this.layout_dir_ == null) {
+        throw new ArgumentNullException("Layout argument not found.");
       }
-      ZipFile.CreateFromDirectory(OUT_DIR, ZIP_DIR + $"{last_sync_.ToString("dd_MM_yyyy_hhmmss")}.zip");
-      DeleteOUT();
     }
 
-    private void DeleteOUT() {
-      if (Directory.Exists(OUT_DIR)) {
-        Directory.Delete(OUT_DIR, true);
+    private void ZipDelta() {
+      Console.WriteLine("Zipping Delta Files.");
+      if (!Directory.Exists(ARCHIVE_DIR)) {
+        Directory.CreateDirectory(ARCHIVE_DIR);
       }
+      ZipFile.CreateFromDirectory(
+        DELTA_DIR,
+        ARCHIVE_DIR + $"{last_sync_.ToString("dd_MM_yyyy_HHmmss")}.zip"
+      );
+      RmDeltaDir();
     }
-    private void ClearOut() {
-      DeleteOUT();
-      Directory.CreateDirectory(OUT_DIR);
+
+
+    private void MkDeltaDir() {
+      RmDeltaDir();
+      Directory.CreateDirectory(DELTA_DIR);
+    }
+    
+    private void RmDeltaDir() {
+      if (Directory.Exists(DELTA_DIR)) {
+        Directory.Delete(DELTA_DIR, true);
+      }
     }
 
     private void RunVSDownload() {
@@ -57,13 +72,13 @@ namespace Sync {
       p.WaitForExit(); 
     }
 
-    private void SetLastSyncTime() {
+    private void SetSyncTime() {
       last_sync_ = DateTime.UtcNow;
       File.WriteAllText(SYNC_FILE, last_sync_.ToString());
       Console.WriteLine($"Setting last sync time: {last_sync_}.");
     }
 
-    private void GetLastSyncTime() {
+    private void GetSyncTime() {
       if (!File.Exists(SYNC_FILE)) {
         last_sync_  = DateTime.UtcNow;
         basing_ = true;
@@ -74,20 +89,24 @@ namespace Sync {
       Console.WriteLine($"Got last sync time: {last_sync_}.");
     }
 
-    private void WalkVS(string root_dir) {
-      DirectoryInfo root = new DirectoryInfo(root_dir);
-      FileInfo[] files = root.GetFiles("*.*", SearchOption.AllDirectories);
+    private void WalkVSTree() {
       Console.WriteLine("Checking Visual Studio directory for file changes.");
+      DirectoryInfo root = new DirectoryInfo(layout_dir_);
+      FileInfo[] files = root.GetFiles("*.*", SearchOption.AllDirectories);
       foreach(var file in files) {
-        string p = Path.GetRelativePath(layout_dir_, file.Directory.FullName);
-        string o = OUT_DIR + p + "/";
         if (file.LastWriteTimeUtc > last_sync_) {
-          if (!Directory.Exists(o) && p != ".") {
-            Directory.CreateDirectory(o);
-          }
-          File.Copy(file.FullName, o + file.Name);
+          this.CopyFileToOut(file);
         }
       }
+    }
+
+    private void CopyFileToOut(FileInfo file) {
+      string p = Path.GetRelativePath(layout_dir_, file.Directory.FullName);
+      string o = DELTA_DIR + p + "/";
+      if (!Directory.Exists(o) && p != ".") {
+        Directory.CreateDirectory(o);
+      }
+      File.Copy(file.FullName, o + file.Name);
     }
   }
 }
